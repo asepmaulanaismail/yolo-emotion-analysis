@@ -17,6 +17,14 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
 
+def getThickness(imageWidth):
+    thickness = int(imageWidth * (3/1280))
+    if thickness == 0:
+        thickness = 1
+    return thickness
+
+def getFontScale(imageWidth):
+    return imageWidth * (1.5/1280)
 
 def detect(opt):
     source, view_img, imgsz, nosave, show_conf, save_path, show_fps = opt.source, not opt.hide_img, opt.img_size, opt.no_save, not opt.hide_conf, opt.output_path, opt.show_fps
@@ -39,6 +47,7 @@ def detect(opt):
         model.half()  # to FP16
 
     # Set Dataloader
+    print("Checking camera... (this may takes longer than usual)")
     vid_path, vid_writer = None, None
     if webcam:
         view_img = check_imshow()
@@ -49,7 +58,9 @@ def detect(opt):
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
-    colors = ((0,52,255),(121,3,195),(176,34,118),(87,217,255),(69,199,79),(233,219,155),(203,139,77),(214,246,255))
+    # BGR
+    # colors = ((0,52,255),(121,3,195),(176,34,118),(87,217,255),(69,199,79),(233,219,155),(203,139,77),(214,246,255)) rgb(147 103 137)
+    colors = ((0,52,255),(121,3,195),(176,34,118),(87,217,255),(69,199,79),(55,55,55),(203,139,77),(103,137,147))
 
     # Run inference
     if device.type != 'cpu':
@@ -108,18 +119,26 @@ def detect(opt):
                 i = 0
                 #for *xyxy, conf, cls in reversed(det):
                 #for *xyxy, conf, cls in det[::-1]:
+                thickness = getThickness(im0.shape[1])
+                fontScale = getFontScale(im0.shape[1])
                 for *xyxy, conf, cls in reversed(det):
                     if view_img or not nosave:  
                         # Add bbox to image with emotions on 
                         label = emotions[i][0]
+                        # print(colors)
+                        # print(emotions[i])
+                        # print(emotions[i][1])
                         colour = colors[emotions[i][1]]
                         i += 1
-                        plot_one_box(xyxy, im0, label=label, color=colour, line_thickness=opt.line_thickness)
+                        plot_one_box(xyxy, im0, label=label, color=colour, line_thickness=thickness, font_scale=fontScale)
 
 
             # Stream results
             if view_img:
-                display_img = cv2.resize(im0, (im0.shape[1]*2,im0.shape[0]*2))
+                hw = (int(im0.shape[1]), int(im0.shape[0]))
+                if (im0.shape[1] > 1000):
+                    hw = (int(im0.shape[1]/2), int(im0.shape[0]/2))
+                display_img = cv2.resize(im0, hw)
                 cv2.imshow("Emotion Detection",display_img)
                 cv2.waitKey(1)  # 1 millisecond
             if not nosave:
@@ -152,6 +171,8 @@ def detect(opt):
             # calculate and display fps
             print(f"FPS: {1/(time.time()-t0):.2f}"+" "*5,end="\r")
             t0 = time.time()
+
+        # time.sleep(1)
         
 
 if __name__ == '__main__':

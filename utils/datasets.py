@@ -282,11 +282,21 @@ class LoadStreams:  # multiple IP or RTSP cameras
                 import pafy
                 s = pafy.new(s).getbest(preftype="mp4").url  # YouTube URL
             s = eval(s) if s.isnumeric() else s  # i.e. s = '0' local webcam
-            cap = cv2.VideoCapture(s)
+            cap = cv2.VideoCapture(s, cv2.CAP_DSHOW)
             assert cap.isOpened(), f'Failed to open {s}'
+
+            # if camera did't have this resolution, this would changed anything
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
             w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            print(f"w: {w}")
+            print(f"h: {h}")
             self.fps = cap.get(cv2.CAP_PROP_FPS) % 100
+            # if self.fps == 0:
+            #     self.fps = 30 # default
+            self.fps = 15
 
             _, self.imgs[i] = cap.read()  # guarantee first frame
             thread = Thread(target=self.update, args=([i, cap]), daemon=True)
@@ -307,8 +317,9 @@ class LoadStreams:  # multiple IP or RTSP cameras
             n += 1
             # _, self.imgs[index] = cap.read()
             cap.grab()
-            if n == 4:  # read every 4th frame
+            if n == 15:  # read every 4th frame
                 success, im = cap.retrieve()
+                # print('Resolution: ' + str(im.shape[0]) + ' x ' + str(im.shape[1]))
                 self.imgs[index] = im if success else self.imgs[index] * 0
                 n = 0
             time.sleep(1 / self.fps)  # wait time
