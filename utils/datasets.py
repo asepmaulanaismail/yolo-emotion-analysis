@@ -294,8 +294,8 @@ class LoadStreams:  # multiple IP or RTSP cameras
             print(f"w: {w}")
             print(f"h: {h}")
             self.fps = cap.get(cv2.CAP_PROP_FPS) % 100
-            # if self.fps == 0:
-            #     self.fps = 30 # default
+            if self.fps == 0:
+                self.fps = 30 # default
             # self.fps = 15
 
             _, self.imgs[i] = cap.read()  # guarantee first frame
